@@ -1,0 +1,1633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>touch grass — without leaving your desk</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@300;400;500&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #0d1c24;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: none;
+    }
+
+    #webgl-container {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+      cursor: grab;
+    }
+
+    #webgl-container:active {
+      cursor: grabbing;
+    }
+
+    .ui-layer {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 28px 36px 32px;
+      color: #16291b;
+      transition: color 0.85s ease;
+      z-index: 10;
+    }
+
+    .ui-layer.is-night {
+      color: rgba(238, 245, 255, 0.94);
+    }
+
+    .top-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+    }
+
+    .brand-mark {
+      pointer-events: auto;
+      background: none;
+      border: none;
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: 1.3rem;
+      font-weight: 500;
+      letter-spacing: 0.02em;
+      color: inherit;
+      cursor: pointer;
+      opacity: 0.9;
+      transition: opacity 0.3s ease;
+    }
+
+    .brand-mark:hover {
+      opacity: 1;
+    }
+
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .blade-counter {
+      font-size: 0.68rem;
+      letter-spacing: 0.04em;
+      opacity: 0.58;
+      font-weight: 400;
+    }
+
+    .quality-switcher {
+      pointer-events: auto;
+      display: inline-flex;
+      align-items: center;
+      gap: 2px;
+      padding: 3px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.24);
+      border: 1px solid rgba(255, 255, 255, 0.36);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+    }
+
+    .ui-layer.is-night .quality-switcher {
+      background: rgba(10, 22, 38, 0.45);
+      border-color: rgba(255, 255, 255, 0.14);
+    }
+
+    .quality-btn {
+      background: transparent;
+      border: none;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.68rem;
+      font-weight: 400;
+      letter-spacing: 0.03em;
+      color: inherit;
+      padding: 4px 10px;
+      border-radius: 999px;
+      cursor: pointer;
+      opacity: 0.65;
+      transition: all 0.25s ease;
+    }
+
+    .quality-btn:hover {
+      opacity: 0.95;
+    }
+
+    .quality-btn.active {
+      opacity: 1;
+      background: rgba(255, 255, 255, 0.56);
+      font-weight: 500;
+    }
+
+    .ui-layer.is-night .quality-btn.active {
+      background: rgba(255, 255, 255, 0.18);
+    }
+
+    .hero-center {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      margin-top: -9vh;
+      transition: opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1),
+                  transform 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .hero-center.is-minimized {
+      opacity: 0.14;
+      transform: translateY(-20px) scale(0.95);
+    }
+
+    .hero-center.is-minimized:hover {
+      opacity: 0.88;
+    }
+
+    .hero-title {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: clamp(3.2rem, 6.6vw, 5.4rem);
+      font-weight: 400;
+      line-height: 1.0;
+      letter-spacing: -0.015em;
+      margin-bottom: 10px;
+      text-shadow: 0 2px 24px rgba(255, 255, 255, 0.28);
+    }
+
+    .ui-layer.is-night .hero-title {
+      text-shadow: 0 4px 28px rgba(4, 12, 26, 0.68);
+    }
+
+    .hero-subtitle {
+      font-size: clamp(0.88rem, 1.35vw, 1.04rem);
+      font-weight: 300;
+      letter-spacing: 0.045em;
+      opacity: 0.8;
+      margin-bottom: 24px;
+    }
+
+    .cta-button {
+      pointer-events: auto;
+      background: rgba(255, 255, 255, 0.56);
+      color: #152719;
+      border: 1px solid rgba(255, 255, 255, 0.74);
+      border-radius: 999px;
+      padding: 10px 26px;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.8rem;
+      font-weight: 400;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      transition: transform 0.3s ease, background 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .cta-button:hover {
+      transform: translateY(-1.5px);
+      background: rgba(255, 255, 255, 0.8);
+      box-shadow: 0 8px 24px rgba(20, 45, 26, 0.09);
+    }
+
+    .ui-layer.is-night .cta-button {
+      background: rgba(14, 28, 48, 0.56);
+      color: rgba(238, 245, 255, 0.95);
+      border-color: rgba(255, 255, 255, 0.22);
+    }
+
+    .ui-layer.is-night .cta-button:hover {
+      background: rgba(24, 46, 78, 0.78);
+    }
+
+    .bottom-controls {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+    }
+
+    .interaction-hint {
+      font-size: 0.7rem;
+      letter-spacing: 0.05em;
+      opacity: 0.58;
+      transition: opacity 0.5s ease;
+    }
+
+    .control-pill {
+      pointer-events: auto;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 5px 8px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.28);
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+
+    .ui-layer.is-night .control-pill {
+      background: rgba(10, 22, 38, 0.48);
+      border-color: rgba(255, 255, 255, 0.16);
+    }
+
+    .pill-btn {
+      background: transparent;
+      border: none;
+      color: inherit;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.76rem;
+      font-weight: 400;
+      letter-spacing: 0.03em;
+      padding: 6px 15px;
+      border-radius: 999px;
+      cursor: pointer;
+      opacity: 0.68;
+      transition: opacity 0.25s ease, background 0.25s ease;
+    }
+
+    .pill-btn:hover {
+      opacity: 0.95;
+    }
+
+    .pill-btn.active {
+      opacity: 1;
+      font-weight: 500;
+      background: rgba(255, 255, 255, 0.55);
+    }
+
+    .ui-layer.is-night .pill-btn.active {
+      background: rgba(255, 255, 255, 0.17);
+    }
+
+    .pill-divider {
+      width: 1px;
+      height: 12px;
+      background: currentColor;
+      opacity: 0.22;
+    }
+
+    @media (max-width: 640px) {
+      .ui-layer {
+        padding: 18px 16px 22px;
+      }
+      .blade-counter {
+        display: none;
+      }
+      .hero-center {
+        margin-top: -6vh;
+      }
+      .pill-btn {
+        padding: 6px 11px;
+        font-size: 0.72rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="webgl-container"></div>
+
+  <div id="ui-layer" class="ui-layer is-day">
+    <header class="top-nav">
+      <button type="button" id="brand-reset-btn" class="brand-mark" title="Reset view">
+        touch grass
+      </button>
+
+      <div class="nav-right">
+        <span id="blade-count-label" class="blade-counter">78,000 blades</span>
+        <div class="quality-switcher" role="group" aria-label="Graphics Quality">
+          <button type="button" id="q-low" class="quality-btn" data-quality="low">Low</button>
+          <button type="button" id="q-medium" class="quality-btn active" data-quality="medium">Med</button>
+          <button type="button" id="q-high" class="quality-btn" data-quality="high">High</button>
+        </div>
+      </div>
+    </header>
+
+    <main id="hero-section" class="hero-center">
+      <h1 class="hero-title">touch grass</h1>
+      <p class="hero-subtitle">without leaving your desk</p>
+      <button type="button" id="try-now-btn" class="cta-button">try it now</button>
+    </main>
+
+    <footer class="bottom-controls">
+      <span id="interaction-hint" class="interaction-hint">Sweep across the meadow to touch the grass</span>
+      <div class="control-pill">
+        <button type="button" id="btn-day" class="pill-btn active">Day</button>
+        <span class="pill-divider" aria-hidden="true"></span>
+        <button type="button" id="btn-night" class="pill-btn">Night</button>
+        <span class="pill-divider" aria-hidden="true"></span>
+        <button type="button" id="btn-sound" class="pill-btn">Sound Off</button>
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    (function () {
+      'use strict';
+
+      // -----------------------------------------------------------------------
+      // 1. Quality Presets & Device Detection
+      // -----------------------------------------------------------------------
+      var QUALITY_PRESETS = {
+        low: {
+          label: 'Low',
+          bladeCount: 38000,
+          fireflyCount: 80,
+          terrainSegments: 120,
+          maxDpr: 1.25
+        },
+        medium: {
+          label: 'Medium',
+          bladeCount: 78000,
+          fireflyCount: 150,
+          terrainSegments: 168,
+          maxDpr: 1.75
+        },
+        high: {
+          label: 'High',
+          bladeCount: 130000,
+          fireflyCount: 230,
+          terrainSegments: 220,
+          maxDpr: 2.0
+        }
+      };
+
+      function detectInitialQuality() {
+        var isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
+        var cores = navigator.hardwareConcurrency || 4;
+        if (isMobile) return cores >= 6 ? 'medium' : 'low';
+        return cores >= 8 ? 'high' : 'medium';
+      }
+
+      var currentQuality = detectInitialQuality();
+      var currentMode = 'day';
+      var isImmersive = false;
+      var nightState = { value: 0.0 };
+
+      // -----------------------------------------------------------------------
+      // 2. Shared Analytical Terrain Math (100% alignment between Mesh & Grass)
+      // -----------------------------------------------------------------------
+      function hash2(x, z) {
+        var h = Math.sin(x * 127.1 + z * 311.7) * 43758.5453123;
+        return h - Math.floor(h);
+      }
+
+      function smoothNoise2D(x, z) {
+        var ix = Math.floor(x);
+        var iz = Math.floor(z);
+        var fx = x - ix;
+        var fz = z - iz;
+        var ux = fx * fx * (3.0 - 2.0 * fx);
+        var uz = fz * fz * (3.0 - 2.0 * fz);
+        var a = hash2(ix, iz);
+        var b = hash2(ix + 1, iz);
+        var c = hash2(ix, iz + 1);
+        var d = hash2(ix + 1, iz + 1);
+        return a + (b - a) * ux + (c - a) * uz + (a - b - c + d) * ux * uz;
+      }
+
+      function getTerrainHeight(x, z) {
+        var broadWave =
+          Math.sin(x * 0.045 + 0.4) * Math.cos(z * 0.038 - 0.3) * 1.45 +
+          Math.sin(x * 0.022 - z * 0.028 + 1.1) * 1.15;
+
+        var midWave =
+          (smoothNoise2D(x * 0.08 + 14.2, z * 0.08 + 7.9) - 0.5) * 1.1 +
+          (smoothNoise2D(x * 0.18 - 5.1, z * 0.18 + 3.4) - 0.5) * 0.32;
+
+        // Central distant focal hill at (0, -38) where the Solitary Tree stands
+        var dxTree = x;
+        var dzTree = z + 38.0;
+        var centralHill = 5.4 * Math.exp(-(dxTree * dxTree) / 620.0 - (dzTree * dzTree) / 480.0);
+
+        // Left flanking ridge
+        var dxLeft = x + 34.0;
+        var dzLeft = z + 30.0;
+        var leftHill = 3.8 * Math.exp(-(dxLeft * dxLeft) / 520.0 - (dzLeft * dzLeft) / 460.0);
+
+        // Right distant ridge
+        var dxRight = x - 36.0;
+        var dzRight = z + 44.0;
+        var rightHill = 4.3 * Math.exp(-(dxRight * dxRight) / 680.0 - (dzRight * dzRight) / 540.0);
+
+        // Foreground gentle dip for cinematic low-angle framing
+        var dxFg = x;
+        var dzFg = z - 6.0;
+        var foregroundCradle = -0.65 * Math.exp(-(dxFg * dxFg) / 220.0 - (dzFg * dzFg) / 140.0);
+
+        return broadWave + midWave + centralHill + leftHill + rightHill + foregroundCradle;
+      }
+
+      function getTerrainNormal(x, z, target) {
+        var eps = 0.25;
+        var hL = getTerrainHeight(x - eps, z);
+        var hR = getTerrainHeight(x + eps, z);
+        var hD = getTerrainHeight(x, z - eps);
+        var hU = getTerrainHeight(x, z + eps);
+        return target.set(hL - hR, 2.0 * eps, hD - hU).normalize();
+      }
+
+      // -----------------------------------------------------------------------
+      // 3. Procedural Web Audio API Nature Soundscape
+      // -----------------------------------------------------------------------
+      var soundscape = {
+        ctx: null,
+        masterGain: null,
+        windGain: null,
+        dayGain: null,
+        nightGain: null,
+        enabled: false,
+        timer: null,
+
+        init: function () {
+          if (this.ctx) return;
+          var AudioCtx = window.AudioContext || window.webkitAudioContext;
+          if (!AudioCtx) return;
+
+          this.ctx = new AudioCtx();
+          var now = this.ctx.currentTime;
+
+          this.masterGain = this.ctx.createGain();
+          this.masterGain.gain.setValueAtTime(0.0001, now);
+          this.masterGain.connect(this.ctx.destination);
+
+          this.windGain = this.ctx.createGain();
+          this.windGain.gain.setValueAtTime(0.16, now);
+          this.windGain.connect(this.masterGain);
+
+          this.dayGain = this.ctx.createGain();
+          this.dayGain.gain.setValueAtTime(currentMode === 'day' ? 1.0 : 0.05, now);
+          this.dayGain.connect(this.masterGain);
+
+          this.nightGain = this.ctx.createGain();
+          this.nightGain.gain.setValueAtTime(currentMode === 'night' ? 1.0 : 0.0, now);
+          this.nightGain.connect(this.masterGain);
+
+          // 4-second pink noise buffer for soft wind through meadow grass
+          var sr = this.ctx.sampleRate;
+          var len = sr * 4;
+          var buf = this.ctx.createBuffer(1, len, sr);
+          var out = buf.getChannelData(0);
+          var b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
+          for (var i = 0; i < len; i++) {
+            var w = Math.random() * 2 - 1;
+            b0 = 0.99886 * b0 + w * 0.0555179;
+            b1 = 0.99332 * b1 + w * 0.0750759;
+            b2 = 0.96900 * b2 + w * 0.1538520;
+            b3 = 0.86650 * b3 + w * 0.3104856;
+            b4 = 0.55000 * b4 + w * 0.5329522;
+            b5 = -0.7616 * b5 - w * 0.0168980;
+            out[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + w * 0.5362) * 0.035;
+            b6 = w * 0.115926;
+          }
+
+          var src = this.ctx.createBufferSource();
+          src.buffer = buf;
+          src.loop = true;
+
+          var filter = this.ctx.createBiquadFilter();
+          filter.type = 'bandpass';
+          filter.frequency.setValueAtTime(420, now);
+          filter.Q.setValueAtTime(1.4, now);
+
+          var lfo = this.ctx.createOscillator();
+          lfo.type = 'sine';
+          lfo.frequency.setValueAtTime(0.14, now);
+          var lfoGain = this.ctx.createGain();
+          lfoGain.gain.setValueAtTime(200, now);
+          lfo.connect(lfoGain);
+          lfoGain.connect(filter.frequency);
+
+          src.connect(filter);
+          filter.connect(this.windGain);
+          src.start(now);
+          lfo.start(now);
+
+          var self = this;
+          this.timer = window.setInterval(function () {
+            if (!self.enabled || !self.ctx || self.ctx.state !== 'running') return;
+            if (currentMode === 'day') {
+              if (Math.random() < 0.58) self.playBird();
+            } else {
+              self.playCricket();
+            }
+          }, 1600);
+        },
+
+        toggle: function (forceState) {
+          var next = forceState !== undefined ? forceState : !this.enabled;
+          if (next && !this.ctx) this.init();
+          this.enabled = next;
+          if (this.ctx && this.masterGain) {
+            if (this.ctx.state === 'suspended' && this.enabled) {
+              this.ctx.resume().catch(function () {});
+            }
+            var now = this.ctx.currentTime;
+            this.masterGain.gain.cancelScheduledValues(now);
+            this.masterGain.gain.setTargetAtTime(this.enabled ? 0.55 : 0.0001, now, 0.4);
+          }
+          return this.enabled;
+        },
+
+        setMode: function (mode) {
+          if (!this.ctx || !this.dayGain || !this.nightGain) return;
+          var now = this.ctx.currentTime;
+          this.dayGain.gain.cancelScheduledValues(now);
+          this.nightGain.gain.cancelScheduledValues(now);
+          this.dayGain.gain.setTargetAtTime(mode === 'day' ? 1.0 : 0.04, now, 0.8);
+          this.nightGain.gain.setTargetAtTime(mode === 'night' ? 1.0 : 0.0, now, 0.8);
+        },
+
+        rustle: function (speed) {
+          if (!this.enabled || !this.ctx || !this.windGain) return;
+          var now = this.ctx.currentTime;
+          var boost = Math.min(0.38, 0.16 + speed * 0.15);
+          this.windGain.gain.setTargetAtTime(boost, now, 0.07);
+          this.windGain.gain.setTargetAtTime(0.16, now + 0.16, 0.45);
+        },
+
+        playBird: function () {
+          if (!this.ctx || !this.dayGain) return;
+          var now = this.ctx.currentTime + Math.random() * 0.35;
+          var count = 1 + Math.floor(Math.random() * 3);
+          for (var i = 0; i < count; i++) {
+            var t0 = now + i * (0.14 + Math.random() * 0.07);
+            var dur = 0.09 + Math.random() * 0.06;
+            var freq = 2100 + Math.random() * 1100;
+            var osc = this.ctx.createOscillator();
+            var gain = this.ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, t0);
+            osc.frequency.exponentialRampToValueAtTime(freq * (1.18 + Math.random() * 0.14), t0 + dur * 0.55);
+            osc.frequency.exponentialRampToValueAtTime(freq * 0.92, t0 + dur);
+            gain.gain.setValueAtTime(0.0001, t0);
+            gain.gain.linearRampToValueAtTime(0.026, t0 + dur * 0.25);
+            gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+            osc.connect(gain);
+            gain.connect(this.dayGain);
+            osc.start(t0);
+            osc.stop(t0 + dur + 0.02);
+          }
+        },
+
+        playCricket: function () {
+          if (!this.ctx || !this.nightGain) return;
+          var now = this.ctx.currentTime + Math.random() * 0.25;
+          var pulses = 3 + Math.floor(Math.random() * 3);
+          var freq = 3950 + Math.random() * 320;
+          for (var i = 0; i < pulses; i++) {
+            var t0 = now + i * 0.055;
+            var dur = 0.032;
+            var osc = this.ctx.createOscillator();
+            var gain = this.ctx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(freq, t0);
+            gain.gain.setValueAtTime(0.0001, t0);
+            gain.gain.linearRampToValueAtTime(0.015, t0 + 0.008);
+            gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+            osc.connect(gain);
+            gain.connect(this.nightGain);
+            osc.start(t0);
+            osc.stop(t0 + dur + 0.01);
+          }
+        }
+      };
+
+      // -----------------------------------------------------------------------
+      // 4. Custom GLSL Shaders (Sky, Clouds, Grass, Tree Foliage, Fireflies)
+      // -----------------------------------------------------------------------
+      var SKY_VERT = [
+        'varying vec3 vDir;',
+        'void main() {',
+        '  vDir = normalize(position);',
+        '  vec4 wp = modelMatrix * vec4(position, 1.0);',
+        '  gl_Position = projectionMatrix * viewMatrix * wp;',
+        '}'
+      ].join('\n');
+
+      var SKY_FRAG = [
+        'uniform float uTime;',
+        'uniform float uNightMix;',
+        'uniform vec3 uSunPos;',
+        'uniform vec3 uMoonPos;',
+        'uniform vec3 uDayZenith;',
+        'uniform vec3 uDayHorizon;',
+        'uniform vec3 uNightZenith;',
+        'uniform vec3 uNightHorizon;',
+        'varying vec3 vDir;',
+        'float hash31(vec3 p) {',
+        '  p = fract(p * 0.1031);',
+        '  p += dot(p, p.yzx + 33.33);',
+        '  return fract((p.x + p.y) * p.z);',
+        '}',
+        'void main() {',
+        '  vec3 dir = normalize(vDir);',
+        '  float elev = clamp(dir.y, 0.0, 1.0);',
+        '  vec3 daySky = mix(uDayHorizon, uDayZenith, pow(elev, 0.55));',
+        '  vec3 nightSky = mix(uNightHorizon, uNightZenith, pow(elev, 0.65));',
+        '  vec3 skyColor = mix(daySky, nightSky, uNightMix);',
+        '  float horizonGlow = pow(1.0 - abs(dir.y), 5.0);',
+        '  skyColor += mix(vec3(0.18, 0.20, 0.14), vec3(0.05, 0.09, 0.18), uNightMix) * horizonGlow;',
+        '  vec3 sunDir = normalize(uSunPos);',
+        '  float sunCos = max(0.0, dot(dir, sunDir));',
+        '  float sunHalo = pow(sunCos, 12.0) * 0.35 + pow(sunCos, 80.0) * 0.45;',
+        '  float sunDisc = smoothstep(0.9982, 0.9994, sunCos);',
+        '  skyColor += (vec3(1.0, 0.95, 0.82) * sunHalo + vec3(1.0, 0.99, 0.92) * sunDisc * 1.3) * (1.0 - uNightMix);',
+        '  vec3 moonDir = normalize(uMoonPos);',
+        '  float moonCos = max(0.0, dot(dir, moonDir));',
+        '  float moonHalo = pow(moonCos, 18.0) * 0.28 + pow(moonCos, 120.0) * 0.35;',
+        '  float moonDisc = smoothstep(0.9987, 0.99935, moonCos);',
+        '  skyColor += (vec3(0.55, 0.72, 0.95) * moonHalo + vec3(0.92, 0.96, 1.0) * moonDisc * 1.15) * uNightMix;',
+        '  if (uNightMix > 0.02 && dir.y > 0.06) {',
+        '    vec3 starGrid = floor(dir * 260.0);',
+        '    float starSeed = hash31(starGrid);',
+        '    if (starSeed > 0.9945) {',
+        '      vec3 starCenter = (starGrid + 0.5) / 260.0;',
+        '      float dStar = length(dir - normalize(starCenter));',
+        '      float starSpot = smoothstep(0.0028, 0.0004, dStar);',
+        '      float twinkle = 0.65 + 0.35 * sin(uTime * (2.2 + fract(starSeed * 91.7) * 3.5) + starSeed * 120.0);',
+        '      float heightFade = smoothstep(0.06, 0.28, dir.y);',
+        '      skyColor += vec3(0.85, 0.92, 1.0) * starSpot * twinkle * heightFade * uNightMix * 0.95;',
+        '    }',
+        '  }',
+        '  gl_FragColor = vec4(skyColor, 1.0);',
+        '}'
+      ].join('\n');
+
+      var CLOUD_VERT = [
+        'varying vec2 vUv;',
+        'void main() {',
+        '  vUv = uv;',
+        '  gl_Position = projectionMatrix * viewMatrix * modelMatrix * vec4(position, 1.0);',
+        '}'
+      ].join('\n');
+
+      var CLOUD_FRAG = [
+        'uniform float uTime;',
+        'uniform float uNightMix;',
+        'varying vec2 vUv;',
+        'float hash21(vec2 p) {',
+        '  p = fract(p * vec2(127.1, 311.7));',
+        '  p += dot(p, p + 34.23);',
+        '  return fract(p.x * p.y);',
+        '}',
+        'float noise(vec2 p) {',
+        '  vec2 i = floor(p);',
+        '  vec2 f = fract(p);',
+        '  vec2 u = f * f * (3.0 - 2.0 * f);',
+        '  return mix(',
+        '    mix(hash21(i + vec2(0.0, 0.0)), hash21(i + vec2(1.0, 0.0)), u.x),',
+        '    mix(hash21(i + vec2(0.0, 1.0)), hash21(i + vec2(1.0, 1.0)), u.x),',
+        '    u.y',
+        '  );',
+        '}',
+        'float fbm(vec2 p) {',
+        '  float v = 0.0;',
+        '  float a = 0.5;',
+        '  mat2 rot = mat2(0.8, 0.6, -0.6, 0.8);',
+        '  for (int i = 0; i < 5; i++) {',
+        '    v += a * noise(p);',
+        '    p = rot * p * 2.03 + vec2(13.7, 9.2);',
+        '    a *= 0.5;',
+        '  }',
+        '  return v;',
+        '}',
+        'void main() {',
+        '  vec2 centered = vUv * 2.0 - 1.0;',
+        '  float radialMask = 1.0 - smoothstep(0.25, 0.96, length(centered));',
+        '  if (radialMask <= 0.001) discard;',
+        '  vec2 driftUv = centered * vec2(3.2, 2.2) + vec2(uTime * 0.022, uTime * 0.009);',
+        '  float n1 = fbm(driftUv);',
+        '  float n2 = fbm(driftUv * 1.8 - vec2(uTime * 0.014, -uTime * 0.01));',
+        '  float density = smoothstep(0.46, 0.78, n1 * 0.72 + n2 * 0.36) * radialMask;',
+        '  float highlight = smoothstep(0.52, 0.82, n1);',
+        '  vec3 dayCloud = mix(vec3(0.79, 0.88, 0.96), vec3(1.0, 0.99, 0.97), highlight);',
+        '  vec3 nightCloud = mix(vec3(0.09, 0.14, 0.25), vec3(0.24, 0.34, 0.52), highlight);',
+        '  vec3 cloudColor = mix(dayCloud, nightCloud, uNightMix);',
+        '  float alpha = density * mix(0.68, 0.36, uNightMix);',
+        '  gl_FragColor = vec4(cloudColor, alpha);',
+        '}'
+      ].join('\n');
+
+      var GRASS_VERT = [
+        'uniform float uTime;',
+        'uniform vec2 uWindDir;',
+        'uniform float uWindStrength;',
+        'uniform vec4 uTrail[16];',
+        'uniform vec2 uTrailVel[16];',
+        'attribute vec3 aOffset;',
+        'attribute vec4 aScale;',
+        'attribute vec2 aPhase;',
+        'varying float vHeightPct;',
+        'varying float vColorTint;',
+        'varying vec3 vWorldPos;',
+        'varying vec3 vNormal;',
+        'varying float vWindWave;',
+        'varying float vInteractAmount;',
+        'float hash21(vec2 p) {',
+        '  p = fract(p * vec2(123.34, 456.21));',
+        '  p += dot(p, p + 45.32);',
+        '  return fract(p.x * p.y);',
+        '}',
+        'float noise2D(vec2 p) {',
+        '  vec2 i = floor(p);',
+        '  vec2 f = fract(p);',
+        '  vec2 u = f * f * (3.0 - 2.0 * f);',
+        '  return mix(',
+        '    mix(hash21(i + vec2(0.0, 0.0)), hash21(i + vec2(1.0, 0.0)), u.x),',
+        '    mix(hash21(i + vec2(0.0, 1.0)), hash21(i + vec2(1.0, 1.0)), u.x),',
+        '    u.y',
+        '  );',
+        '}',
+        'void main() {',
+        '  float t = clamp(position.y, 0.0, 1.0);',
+        '  vHeightPct = t;',
+        '  vColorTint = aPhase.y;',
+        '  float bladeHeight = aScale.x;',
+        '  float bladeWidth = aScale.y;',
+        '  float restingBend = aScale.z;',
+        '  float yaw = aScale.w;',
+        '  float phase = aPhase.x;',
+        '  float distToCam = length(aOffset.xz - cameraPosition.xz);',
+        '  float lodScale = smoothstep(82.0, 48.0, distToCam);',
+        '  bladeHeight *= max(0.001, lodScale);',
+        '  float widthProfile = (1.0 - pow(t, 1.75)) * (0.85 + 0.25 * sin(t * 3.14159));',
+        '  vec3 localPos = vec3(position.x * bladeWidth * widthProfile, t * bladeHeight, 0.0);',
+        '  localPos.z += abs(position.x) * bladeWidth * 0.22 * (1.0 - t * 0.5);',
+        '  float curve = t * t * restingBend * bladeHeight;',
+        '  localPos.z += curve;',
+        '  localPos.y *= (1.0 - 0.14 * t * t * restingBend);',
+        '  float s = sin(yaw);',
+        '  float c = cos(yaw);',
+        '  vec3 rotatedPos = vec3(',
+        '    localPos.x * c + localPos.z * s,',
+        '    localPos.y,',
+        '    -localPos.x * s + localPos.z * c',
+        '  );',
+        '  vec2 worldXZ = aOffset.xz;',
+        '  float windCoord = dot(worldXZ, uWindDir) * 0.13 - uTime * 2.15;',
+        '  float gustNoise = noise2D(worldXZ * 0.075 - uWindDir * uTime * 0.65);',
+        '  float secondaryWave = sin(worldXZ.x * 0.21 - worldXZ.y * 0.17 + uTime * 1.6 + phase);',
+        '  float microFlutter = sin(uTime * 5.2 + phase * 3.7 + worldXZ.x * 0.8) * 0.08;',
+        '  float wave = (sin(windCoord + gustNoise * 2.6) * 0.6 + 0.4) * uWindStrength;',
+        '  wave += secondaryWave * 0.22 * uWindStrength + microFlutter;',
+        '  vWindWave = clamp(wave, -0.4, 1.4);',
+        '  float bendWeight = pow(t, 1.55);',
+        '  vec2 windPush = uWindDir * wave * bendWeight * bladeHeight * 0.58;',
+        '  vec2 orthoDir = vec2(-uWindDir.y, uWindDir.x);',
+        '  windPush += orthoDir * sin(uTime * 1.85 + phase) * 0.14 * bendWeight * bladeHeight;',
+        '  vec2 interactPush = vec2(0.0);',
+        '  float totalInteract = 0.0;',
+        '  for (int i = 0; i < 16; i++) {',
+        '    vec4 node = uTrail[i];',
+        '    if (node.w > 0.001) {',
+        '      vec2 diff = worldXZ - node.xy;',
+        '      float d = length(diff);',
+        '      float r = max(0.5, node.z);',
+        '      if (d < r) {',
+        '        float falloff = pow(1.0 - d / r, 2.0) * node.w;',
+        '        vec2 radialDir = d > 0.001 ? normalize(diff) : vec2(1.0, 0.0);',
+        '        vec2 velDir = uTrailVel[i];',
+        '        float spring = cos((1.0 - node.w) * 9.5) * exp(-(1.0 - node.w) * 2.2);',
+        '        vec2 pushDir = normalize(radialDir * 0.72 + velDir * 0.55 + vec2(0.0001));',
+        '        interactPush += pushDir * falloff * spring * 1.35;',
+        '        totalInteract += falloff;',
+        '      }',
+        '    }',
+        '  }',
+        '  float clampedInteract = clamp(totalInteract, 0.0, 1.25);',
+        '  vInteractAmount = clampedInteract;',
+        '  vec2 totalHorizontalDisp = windPush + interactPush * bendWeight * bladeHeight * 0.85;',
+        '  rotatedPos.x += totalHorizontalDisp.x;',
+        '  rotatedPos.z += totalHorizontalDisp.y;',
+        '  float dispLen = length(totalHorizontalDisp);',
+        '  rotatedPos.y -= min(bladeHeight * 0.48, (dispLen * dispLen) / max(0.35, 2.1 * bladeHeight));',
+        '  vec3 localNormal = normalize(vec3(position.x * 0.45, 0.35 + 0.45 * t, 1.0));',
+        '  vec3 worldNormal = normalize(vec3(',
+        '    localNormal.x * c + localNormal.z * s - totalHorizontalDisp.x * 0.45,',
+        '    localNormal.y,',
+        '    -localNormal.x * s + localNormal.z * c - totalHorizontalDisp.y * 0.45',
+        '  ));',
+        '  vNormal = worldNormal;',
+        '  vec3 finalWorldPos = aOffset + rotatedPos;',
+        '  vWorldPos = finalWorldPos;',
+        '  gl_Position = projectionMatrix * viewMatrix * vec4(finalWorldPos, 1.0);',
+        '}'
+      ].join('\n');
+
+      var GRASS_FRAG = [
+        'uniform float uTime;',
+        'uniform float uNightMix;',
+        'uniform vec3 uSunDir;',
+        'uniform vec3 uDayBaseColor;',
+        'uniform vec3 uDayMidColor;',
+        'uniform vec3 uDayTipColor;',
+        'uniform vec3 uNightBaseColor;',
+        'uniform vec3 uNightMidColor;',
+        'uniform vec3 uNightTipColor;',
+        'uniform vec3 uFogColor;',
+        'uniform float uFogNear;',
+        'uniform float uFogFar;',
+        'varying float vHeightPct;',
+        'varying float vColorTint;',
+        'varying vec3 vWorldPos;',
+        'varying vec3 vNormal;',
+        'varying float vWindWave;',
+        'varying float vInteractAmount;',
+        'float hash21(vec2 p) {',
+        '  p = fract(p * vec2(123.34, 456.21));',
+        '  p += dot(p, p + 45.32);',
+        '  return fract(p.x * p.y);',
+        '}',
+        'float noise2D(vec2 p) {',
+        '  vec2 i = floor(p);',
+        '  vec2 f = fract(p);',
+        '  vec2 u = f * f * (3.0 - 2.0 * f);',
+        '  return mix(',
+        '    mix(hash21(i + vec2(0.0, 0.0)), hash21(i + vec2(1.0, 0.0)), u.x),',
+        '    mix(hash21(i + vec2(0.0, 1.0)), hash21(i + vec2(1.0, 1.0)), u.x),',
+        '    u.y',
+        '  );',
+        '}',
+        'void main() {',
+        '  vec3 dayCol = mix(uDayBaseColor, uDayMidColor, smoothstep(0.0, 0.55, vHeightPct));',
+        '  dayCol = mix(dayCol, uDayTipColor, smoothstep(0.45, 1.0, vHeightPct));',
+        '  vec3 nightCol = mix(uNightBaseColor, uNightMidColor, smoothstep(0.0, 0.55, vHeightPct));',
+        '  nightCol = mix(nightCol, uNightTipColor, smoothstep(0.45, 1.0, vHeightPct));',
+        '  float patchNoise = noise2D(vWorldPos.xz * 0.045);',
+        '  vec3 warmShift = mix(vec3(0.93, 0.98, 0.88), vec3(1.08, 1.03, 0.90), vColorTint * 0.65 + patchNoise * 0.35);',
+        '  dayCol *= warmShift;',
+        '  nightCol *= mix(vec3(0.92, 0.96, 1.04), vec3(1.04, 1.08, 1.15), vColorTint);',
+        '  vec3 baseColor = mix(dayCol, nightCol, uNightMix);',
+        '  float cloudShadow = noise2D(vWorldPos.xz * 0.028 + vec2(uTime * 0.18, uTime * 0.09));',
+        '  float shadowFactor = mix(0.80, 1.12, smoothstep(0.28, 0.72, cloudShadow));',
+        '  vec3 N = normalize(vNormal);',
+        '  vec3 L = normalize(uSunDir);',
+        '  vec3 V = normalize(cameraPosition - vWorldPos);',
+        '  float ndl = max(0.0, dot(N, L) * 0.5 + 0.5);',
+        '  float rootAO = mix(0.42, 1.0, smoothstep(0.0, 0.65, vHeightPct));',
+        '  float backLight = pow(clamp(dot(V, -L) + 0.35, 0.0, 1.0), 2.4) * pow(vHeightPct, 1.3);',
+        '  vec3 sss = mix(vec3(0.86, 0.96, 0.42) * 0.42, vec3(0.28, 0.52, 0.78) * 0.32, uNightMix) * backLight;',
+        '  vec3 windSheen = mix(vec3(0.16, 0.22, 0.08), vec3(0.08, 0.15, 0.24), uNightMix) * clamp(vWindWave * 0.45, 0.0, 0.35) * pow(vHeightPct, 1.6);',
+        '  vec3 touchHighlight = mix(vec3(0.22, 0.32, 0.14), vec3(0.14, 0.32, 0.38), uNightMix) * clamp(vInteractAmount * 0.55, 0.0, 0.4) * vHeightPct;',
+        '  vec3 litColor = baseColor * (0.62 + 0.48 * ndl) * shadowFactor * rootAO + sss + windSheen + touchHighlight;',
+        '  float dist = length(vWorldPos - cameraPosition);',
+        '  float fogFactor = smoothstep(uFogNear, uFogFar, dist);',
+        '  vec3 finalColor = mix(litColor, uFogColor, fogFactor);',
+        '  gl_FragColor = vec4(finalColor, 1.0);',
+        '}'
+      ].join('\n');
+
+      var FOLIAGE_VERT = [
+        'uniform float uTime;',
+        'uniform vec2 uWindDir;',
+        'uniform float uWindStrength;',
+        'attribute vec3 aOffset;',
+        'attribute float aScale;',
+        'attribute float aPhase;',
+        'varying vec3 vNormal;',
+        'varying float vPhase;',
+        'varying vec3 vWorldPos;',
+        'void main() {',
+        '  vPhase = aPhase;',
+        '  float sway = sin(uTime * 1.75 + aPhase + aOffset.x * 0.4) * 0.24 * uWindStrength;',
+        '  float gust = cos(uTime * 1.15 + aOffset.y * 0.35 + aPhase) * 0.16 * uWindStrength;',
+        '  vec3 displaced = position * aScale;',
+        '  displaced.x += sin(uTime * 3.4 + position.y * 2.5 + aPhase) * 0.07 * aScale;',
+        '  displaced.z += cos(uTime * 2.9 + position.x * 2.5 + aPhase) * 0.07 * aScale;',
+        '  vec3 clusterCenter = aOffset + vec3(uWindDir.x * sway + gust, sway * 0.22, uWindDir.y * sway);',
+        '  vec4 wp = modelMatrix * vec4(clusterCenter + displaced, 1.0);',
+        '  vWorldPos = wp.xyz;',
+        '  vNormal = normalize(normalMatrix * normal);',
+        '  gl_Position = projectionMatrix * viewMatrix * wp;',
+        '}'
+      ].join('\n');
+
+      var FOLIAGE_FRAG = [
+        'uniform float uNightMix;',
+        'uniform vec3 uSunDir;',
+        'uniform vec3 uFogColor;',
+        'uniform float uFogNear;',
+        'uniform float uFogFar;',
+        'varying vec3 vNormal;',
+        'varying float vPhase;',
+        'varying vec3 vWorldPos;',
+        'void main() {',
+        '  vec3 N = normalize(vNormal);',
+        '  vec3 L = normalize(uSunDir);',
+        '  float ndl = clamp(dot(N, L) * 0.5 + 0.5, 0.0, 1.0);',
+        '  vec3 dayColor = mix(vec3(0.13, 0.32, 0.15), vec3(0.24, 0.52, 0.22), smoothstep(0.15, 0.65, ndl));',
+        '  dayColor = mix(dayColor, vec3(0.56, 0.77, 0.32), smoothstep(0.6, 0.98, ndl));',
+        '  dayColor *= (0.92 + 0.16 * fract(vPhase * 3.17));',
+        '  vec3 nightColor = mix(vec3(0.03, 0.07, 0.12), vec3(0.16, 0.30, 0.44), pow(ndl, 2.2) * 0.75);',
+        '  vec3 col = mix(dayColor, nightColor, uNightMix);',
+        '  float dist = length(vWorldPos - cameraPosition);',
+        '  float fogFactor = smoothstep(uFogNear, uFogFar, dist) * 0.68;',
+        '  col = mix(col, uFogColor, fogFactor);',
+        '  gl_FragColor = vec4(col, 1.0);',
+        '}'
+      ].join('\n');
+
+      var FIREFLY_VERT = [
+        'uniform float uTime;',
+        'uniform float uPixelRatio;',
+        'attribute vec3 aBasePos;',
+        'attribute vec4 aOrbit;',
+        'attribute float aSize;',
+        'varying float vBlink;',
+        'varying float vPhase;',
+        'varying float vDepthFade;',
+        'void main() {',
+        '  float speed = aOrbit.x;',
+        '  float radius = aOrbit.y;',
+        '  float ampY = aOrbit.z;',
+        '  float phase = aOrbit.w;',
+        '  vPhase = phase;',
+        '  float t = uTime * speed + phase;',
+        '  vec3 wander = vec3(',
+        '    sin(t * 1.1) * radius + cos(t * 0.47 + phase) * (radius * 0.55),',
+        '    sin(t * 1.45 + 1.2) * ampY + cos(t * 0.65) * (ampY * 0.4),',
+        '    cos(t * 0.93) * radius + sin(t * 0.53 - phase) * (radius * 0.55)',
+        '  );',
+        '  vec3 worldPos = aBasePos + wander;',
+        '  float pulseWave = sin(uTime * (1.8 + fract(phase) * 2.2) + phase * 4.3);',
+        '  float secondaryPulse = sin(uTime * 0.75 - phase * 2.1);',
+        '  vBlink = smoothstep(-0.2, 0.85, pulseWave * 0.7 + secondaryPulse * 0.3);',
+        '  vec4 mvPosition = modelViewMatrix * vec4(worldPos, 1.0);',
+        '  float dist = -mvPosition.z;',
+        '  vDepthFade = smoothstep(62.0, 6.0, dist);',
+        '  gl_PointSize = aSize * uPixelRatio * (185.0 / max(2.5, dist)) * (0.65 + 0.55 * vBlink);',
+        '  gl_Position = projectionMatrix * mvPosition;',
+        '}'
+      ].join('\n');
+
+      var FIREFLY_FRAG = [
+        'uniform float uOpacity;',
+        'varying float vBlink;',
+        'varying float vPhase;',
+        'varying float vDepthFade;',
+        'void main() {',
+        '  if (uOpacity <= 0.005) discard;',
+        '  vec2 uv = gl_PointCoord - 0.5;',
+        '  float d = length(uv) * 2.0;',
+        '  if (d > 1.0) discard;',
+        '  float core = exp(-d * d * 14.0);',
+        '  float halo = pow(max(0.0, 1.0 - d), 2.4) * 0.75;',
+        '  vec3 outerColor = mix(vec3(0.62, 0.98, 0.18), vec3(0.88, 1.0, 0.32), fract(vPhase * 2.7));',
+        '  vec3 coreColor = vec3(0.98, 1.0, 0.82);',
+        '  vec3 color = mix(outerColor, coreColor, core);',
+        '  float alpha = (core + halo) * vBlink * vDepthFade * uOpacity;',
+        '  gl_FragColor = vec4(color, alpha);',
+        '}'
+      ].join('\n');
+
+      // -----------------------------------------------------------------------
+      // 5. Three.js Scene Initialization & Builders
+      // -----------------------------------------------------------------------
+      var container = document.getElementById('webgl-container');
+      var scene = new THREE.Scene();
+      var camera = new THREE.PerspectiveCamera(46, window.innerWidth / window.innerHeight, 0.2, 220);
+      camera.position.set(0, 2.35, 14.0);
+
+      var renderer = new THREE.WebGLRenderer({
+        antialias: true,
+        powerPreference: 'high-performance'
+      });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, QUALITY_PRESETS[currentQuality].maxDpr));
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.05;
+      container.appendChild(renderer.domElement);
+
+      renderer.domElement.addEventListener('webglcontextlost', function (e) {
+        e.preventDefault();
+      });
+
+      var hemiLight = new THREE.HemisphereLight(0xcfeaff, 0x274c22, 0.85);
+      scene.add(hemiLight);
+
+      var dirLight = new THREE.DirectionalLight(0xfff6e0, 1.45);
+      dirLight.position.set(38, 42, -75);
+      scene.add(dirLight);
+
+      var dayFogColor = new THREE.Color('#bce2f7');
+      var nightFogColor = new THREE.Color('#071324');
+      var currentFogColor = dayFogColor.clone();
+
+      // Sky & Clouds
+      var skyUniforms = {
+        uTime: { value: 0 },
+        uNightMix: { value: 0.0 },
+        uSunPos: { value: new THREE.Vector3(38, 42, -75) },
+        uMoonPos: { value: new THREE.Vector3(-28, 36, -78) },
+        uDayZenith: { value: new THREE.Color('#3b86e0') },
+        uDayHorizon: { value: new THREE.Color('#cbe8fa') },
+        uNightZenith: { value: new THREE.Color('#040b18') },
+        uNightHorizon: { value: new THREE.Color('#0e223d') }
+      };
+
+      var skyMesh = new THREE.Mesh(
+        new THREE.SphereGeometry(140, 48, 32),
+        new THREE.ShaderMaterial({
+          vertexShader: SKY_VERT,
+          fragmentShader: SKY_FRAG,
+          uniforms: skyUniforms,
+          side: THREE.BackSide,
+          depthWrite: false
+        })
+      );
+      scene.add(skyMesh);
+
+      var cloudUniforms = {
+        uTime: { value: 0 },
+        uNightMix: { value: 0.0 }
+      };
+
+      var cloudMesh = new THREE.Mesh(
+        new THREE.PlaneGeometry(185, 130, 1, 1),
+        new THREE.ShaderMaterial({
+          vertexShader: CLOUD_VERT,
+          fragmentShader: CLOUD_FRAG,
+          uniforms: cloudUniforms,
+          transparent: true,
+          depthWrite: false
+        })
+      );
+      cloudMesh.position.set(0, 34, -26);
+      cloudMesh.rotation.x = -Math.PI * 0.47;
+      scene.add(cloudMesh);
+
+      // Solitary Tree on Central Hill (x = 0, z = -38)
+      var treeGroup = new THREE.Group();
+      var treeRootY = getTerrainHeight(0.0, -38.0) - 0.25;
+      treeGroup.position.set(0.0, treeRootY, -38.0);
+      scene.add(treeGroup);
+
+      var barkMat = new THREE.MeshLambertMaterial({ color: 0x3c2b21 });
+      var branchSpecs = [
+        { pos: [0, 1.5, 0], rot: [0.03, 0, -0.05], rt: 0.38, rb: 0.66, len: 3.4 },
+        { pos: [-0.08, 3.6, 0.05], rot: [0.06, 0.2, 0.08], rt: 0.26, rb: 0.40, len: 2.2 },
+        { pos: [-0.85, 4.7, 0.22], rot: [0.18, 0.3, 0.62], rt: 0.13, rb: 0.24, len: 2.6 },
+        { pos: [0.78, 4.9, -0.18], rot: [-0.15, -0.2, -0.55], rt: 0.12, rb: 0.23, len: 2.5 },
+        { pos: [0.12, 5.2, 0.72], rot: [0.56, 0.1, -0.12], rt: 0.11, rb: 0.21, len: 2.2 },
+        { pos: [-0.15, 5.1, -0.68], rot: [-0.52, -0.1, 0.14], rt: 0.11, rb: 0.21, len: 2.1 },
+        { pos: [-1.65, 5.8, 0.45], rot: [0.28, 0.4, 0.85], rt: 0.07, rb: 0.13, len: 1.7 },
+        { pos: [1.55, 6.0, -0.35], rot: [-0.22, -0.3, -0.78], rt: 0.07, rb: 0.13, len: 1.6 }
+      ];
+      for (var bi = 0; bi < branchSpecs.length; bi++) {
+        var b = branchSpecs[bi];
+        var bMesh = new THREE.Mesh(new THREE.CylinderGeometry(b.rt, b.rb, b.len, 9), barkMat);
+        bMesh.position.set(b.pos[0], b.pos[1], b.pos[2]);
+        bMesh.rotation.set(b.rot[0], b.rot[1], b.rot[2]);
+        treeGroup.add(bMesh);
+      }
+
+      var foliageCount = 340;
+      var baseFoliageGeo = new THREE.IcosahedronGeometry(1.0, 2);
+      var fPos = baseFoliageGeo.attributes.position;
+      for (var fi = 0; fi < fPos.count; fi++) {
+        var vx = fPos.getX(fi);
+        var vy = fPos.getY(fi);
+        var vz = fPos.getZ(fi);
+        var bump = 0.86 + 0.24 * Math.sin(vx * 3.7 + vy * 2.9) * Math.cos(vz * 3.3);
+        fPos.setXYZ(fi, vx * bump, vy * 0.76 * bump, vz * bump);
+      }
+      baseFoliageGeo.computeVertexNormals();
+
+      var instFoliageGeo = new THREE.InstancedBufferGeometry();
+      instFoliageGeo.index = baseFoliageGeo.index;
+      instFoliageGeo.attributes.position = baseFoliageGeo.attributes.position;
+      instFoliageGeo.attributes.normal = baseFoliageGeo.attributes.normal;
+
+      var fOffsets = new Float32Array(foliageCount * 3);
+      var fScales = new Float32Array(foliageCount);
+      var fPhases = new Float32Array(foliageCount);
+      var crownCenters = [
+        [0.0, 6.9, 0.0, 2.6, 1.8],
+        [-1.85, 6.1, 0.35, 2.1, 1.4],
+        [1.75, 6.2, -0.25, 2.0, 1.4],
+        [-0.65, 6.4, 1.35, 1.8, 1.3],
+        [0.65, 6.3, -1.25, 1.8, 1.3],
+        [0.15, 7.6, 0.1, 1.9, 1.25]
+      ];
+      for (var ci = 0; ci < foliageCount; ci++) {
+        var cc = crownCenters[ci % crownCenters.length];
+        var theta = Math.random() * Math.PI * 2;
+        var phi = Math.acos(2 * Math.random() - 1);
+        var rad = Math.pow(Math.random(), 0.55);
+        fOffsets[ci * 3] = cc[0] + Math.sin(phi) * Math.cos(theta) * cc[3] * rad;
+        fOffsets[ci * 3 + 1] = cc[1] + Math.cos(phi) * cc[4] * rad;
+        fOffsets[ci * 3 + 2] = cc[2] + Math.sin(phi) * Math.sin(theta) * cc[3] * rad;
+        fScales[ci] = 0.52 + Math.random() * 0.58 * (1.0 - rad * 0.25);
+        fPhases[ci] = Math.random() * Math.PI * 2;
+      }
+      instFoliageGeo.setAttribute('aOffset', new THREE.InstancedBufferAttribute(fOffsets, 3));
+      instFoliageGeo.setAttribute('aScale', new THREE.InstancedBufferAttribute(fScales, 1));
+      instFoliageGeo.setAttribute('aPhase', new THREE.InstancedBufferAttribute(fPhases, 1));
+
+      var foliageUniforms = {
+        uTime: { value: 0 },
+        uWindDir: { value: new THREE.Vector2(0.86, 0.51).normalize() },
+        uWindStrength: { value: 1.0 },
+        uNightMix: { value: 0.0 },
+        uSunDir: { value: new THREE.Vector3(0.42, 0.68, -0.58).normalize() },
+        uFogColor: { value: currentFogColor },
+        uFogNear: { value: 26.0 },
+        uFogFar: { value: 88.0 }
+      };
+
+      var foliageMesh = new THREE.InstancedMesh(
+        instFoliageGeo,
+        new THREE.ShaderMaterial({
+          vertexShader: FOLIAGE_VERT,
+          fragmentShader: FOLIAGE_FRAG,
+          uniforms: foliageUniforms
+        }),
+        foliageCount
+      );
+      foliageMesh.frustumCulled = false;
+      treeGroup.add(foliageMesh);
+
+      // Trail state for grass displacement
+      var TRAIL_SIZE = 16;
+      var trailNodes = [];
+      var trailUniformVecs = [];
+      var trailVelVecs = [];
+      for (var ti = 0; ti < TRAIL_SIZE; ti++) {
+        trailNodes.push({ x: 9999, z: 9999, vx: 0, vz: 0, radius: 3.2, strength: 0 });
+        trailUniformVecs.push(new THREE.Vector4(9999, 9999, 3.2, 0));
+        trailVelVecs.push(new THREE.Vector2(0, 0));
+      }
+      var trailHead = 0;
+
+      var grassUniforms = {
+        uTime: { value: 0 },
+        uWindDir: { value: new THREE.Vector2(0.86, 0.51).normalize() },
+        uWindStrength: { value: 1.0 },
+        uTrail: { value: trailUniformVecs },
+        uTrailVel: { value: trailVelVecs },
+        uNightMix: { value: 0.0 },
+        uSunDir: { value: new THREE.Vector3(0.42, 0.68, -0.58).normalize() },
+        uDayBaseColor: { value: new THREE.Color('#184319') },
+        uDayMidColor: { value: new THREE.Color('#398529') },
+        uDayTipColor: { value: new THREE.Color('#97d145') },
+        uNightBaseColor: { value: new THREE.Color('#071722') },
+        uNightMidColor: { value: new THREE.Color('#133642') },
+        uNightTipColor: { value: new THREE.Color('#38747c') },
+        uFogColor: { value: currentFogColor },
+        uFogNear: { value: 26.0 },
+        uFogFar: { value: 88.0 }
+      };
+
+      var fireflyUniforms = {
+        uTime: { value: 0 },
+        uOpacity: { value: 0 },
+        uPixelRatio: { value: Math.min(window.devicePixelRatio || 1, 2) }
+      };
+
+      var terrainMesh = null;
+      var grassMesh = null;
+      var fireflyPoints = null;
+
+      function buildDynamicMeadow(qualityKey) {
+        var preset = QUALITY_PRESETS[qualityKey];
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, preset.maxDpr));
+
+        // 1. Rebuild Terrain
+        if (terrainMesh) {
+          scene.remove(terrainMesh);
+          terrainMesh.geometry.dispose();
+          terrainMesh.material.dispose();
+        }
+        var tGeo = new THREE.PlaneGeometry(190, 190, preset.terrainSegments, preset.terrainSegments);
+        tGeo.rotateX(-Math.PI / 2);
+        var posAttr = tGeo.attributes.position;
+        var vCount = posAttr.count;
+        var colors = new Float32Array(vCount * 3);
+        var norm = new THREE.Vector3();
+        var lowC = new THREE.Color('#1d4b1e');
+        var midC = new THREE.Color('#2c6927');
+        var highC = new THREE.Color('#478932');
+        var tmpC = new THREE.Color();
+
+        for (var i = 0; i < vCount; i++) {
+          var x = posAttr.getX(i);
+          var z = posAttr.getZ(i);
+          var y = getTerrainHeight(x, z);
+          posAttr.setY(i, y);
+          getTerrainNormal(x, z, norm);
+          tGeo.attributes.normal.setXYZ(i, norm.x, norm.y, norm.z);
+
+          var hNorm = Math.max(0, Math.min(1, (y + 1.5) / 7.0));
+          var patch = smoothNoise2D(x * 0.06, z * 0.06);
+          var s1 = THREE.MathUtils.smoothstep(hNorm, 0.0, 0.55);
+          var s2 = THREE.MathUtils.smoothstep(hNorm, 0.45, 1.0) * (0.6 + 0.4 * patch);
+          tmpC.copy(lowC).lerp(midC, s1).lerp(highC, s2);
+          colors[i * 3] = tmpC.r;
+          colors[i * 3 + 1] = tmpC.g;
+          colors[i * 3 + 2] = tmpC.b;
+        }
+        tGeo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+        terrainMesh = new THREE.Mesh(
+          tGeo,
+          new THREE.MeshLambertMaterial({ vertexColors: true })
+        );
+        scene.add(terrainMesh);
+
+        // 2. Rebuild Instanced Grass
+        if (grassMesh) {
+          scene.remove(grassMesh);
+          grassMesh.geometry.dispose();
+          grassMesh.material.dispose();
+        }
+        var segs = 5;
+        var bPositions = [];
+        var bIndices = [];
+        for (var s = 0; s < segs; s++) {
+          var t = s / segs;
+          bPositions.push(-0.5, t, 0, 0.5, t, 0);
+        }
+        bPositions.push(0.0, 1.0, 0);
+        for (var s2i = 0; s2i < segs - 1; s2i++) {
+          var base = s2i * 2;
+          bIndices.push(base, base + 1, base + 2, base + 1, base + 3, base + 2);
+        }
+        var lb = (segs - 1) * 2;
+        bIndices.push(lb, lb + 1, lb + 2);
+
+        var gGeo = new THREE.InstancedBufferGeometry();
+        gGeo.setAttribute('position', new THREE.Float32BufferAttribute(bPositions, 3));
+        gGeo.setIndex(bIndices);
+
+        var count = preset.bladeCount;
+        var offsets = new Float32Array(count * 3);
+        var scales = new Float32Array(count * 4);
+        var phases = new Float32Array(count * 2);
+
+        for (var bi2 = 0; bi2 < count; bi2++) {
+          var u = Math.random();
+          var v = Math.random();
+          var gx, gz;
+          if (bi2 < count * 0.78) {
+            var depthT = Math.pow(u, 1.25);
+            gz = 14.5 - depthT * 68.0;
+            var halfSpread = 10.5 + depthT * 38.0;
+            gx = (v * 2.0 - 1.0) * halfSpread + (Math.random() - 0.5) * 1.4;
+          } else {
+            gx = (u * 2.0 - 1.0) * 52.0;
+            gz = 15.0 - v * 72.0;
+          }
+          var gy = getTerrainHeight(gx, gz);
+          offsets[bi2 * 3] = gx;
+          offsets[bi2 * 3 + 1] = gy;
+          offsets[bi2 * 3 + 2] = gz;
+
+          var clump = Math.sin(gx * 0.35) * Math.cos(gz * 0.35) * 0.5 + 0.5;
+          scales[bi2 * 4] = 0.72 + Math.random() * 0.62 + clump * 0.28;
+          scales[bi2 * 4 + 1] = 0.068 + Math.random() * 0.042;
+          scales[bi2 * 4 + 2] = 0.22 + Math.random() * 0.36;
+          scales[bi2 * 4 + 3] = Math.random() * Math.PI * 2.0;
+
+          phases[bi2 * 2] = Math.random() * Math.PI * 2.0;
+          phases[bi2 * 2 + 1] = Math.random();
+        }
+
+        gGeo.setAttribute('aOffset', new THREE.InstancedBufferAttribute(offsets, 3));
+        gGeo.setAttribute('aScale', new THREE.InstancedBufferAttribute(scales, 4));
+        gGeo.setAttribute('aPhase', new THREE.InstancedBufferAttribute(phases, 2));
+
+        grassMesh = new THREE.InstancedMesh(
+          gGeo,
+          new THREE.ShaderMaterial({
+            vertexShader: GRASS_VERT,
+            fragmentShader: GRASS_FRAG,
+            uniforms: grassUniforms,
+            side: THREE.DoubleSide
+          }),
+          count
+        );
+        grassMesh.frustumCulled = false;
+        scene.add(grassMesh);
+
+        // 3. Rebuild Fireflies
+        if (fireflyPoints) {
+          scene.remove(fireflyPoints);
+          fireflyPoints.geometry.dispose();
+          fireflyPoints.material.dispose();
+        }
+        var fCount = preset.fireflyCount;
+        var ffGeo = new THREE.BufferGeometry();
+        var ffBase = new Float32Array(fCount * 3);
+        var ffOrbit = new Float32Array(fCount * 4);
+        var ffSize = new Float32Array(fCount);
+
+        for (var ffi = 0; ffi < fCount; ffi++) {
+          var dT = Math.pow(Math.random(), 1.15);
+          var fz = 12.5 - dT * 48.0;
+          var spX = 9.0 + dT * 26.0;
+          var fx = (Math.random() * 2.0 - 1.0) * spX;
+          var fy = getTerrainHeight(fx, fz) + 0.55 + Math.random() * 2.2;
+          ffBase[ffi * 3] = fx;
+          ffBase[ffi * 3 + 1] = fy;
+          ffBase[ffi * 3 + 2] = fz;
+
+          ffOrbit[ffi * 4] = 0.45 + Math.random() * 0.75;
+          ffOrbit[ffi * 4 + 1] = 0.65 + Math.random() * 1.45;
+          ffOrbit[ffi * 4 + 2] = 0.25 + Math.random() * 0.65;
+          ffOrbit[ffi * 4 + 3] = Math.random() * Math.PI * 2.0;
+          ffSize[ffi] = 1.4 + Math.random() * 2.1;
+        }
+        ffGeo.setAttribute('position', new THREE.BufferAttribute(ffBase, 3));
+        ffGeo.setAttribute('aBasePos', new THREE.BufferAttribute(ffBase, 3));
+        ffGeo.setAttribute('aOrbit', new THREE.BufferAttribute(ffOrbit, 4));
+        ffGeo.setAttribute('aSize', new THREE.BufferAttribute(ffSize, 1));
+
+        fireflyPoints = new THREE.Points(
+          ffGeo,
+          new THREE.ShaderMaterial({
+            vertexShader: FIREFLY_VERT,
+            fragmentShader: FIREFLY_FRAG,
+            uniforms: fireflyUniforms,
+            transparent: true,
+            depthWrite: false,
+            blending: THREE.AdditiveBlending
+          })
+        );
+        fireflyPoints.frustumCulled = false;
+        scene.add(fireflyPoints);
+
+        var countLabel = document.getElementById('blade-count-label');
+        if (countLabel) {
+          countLabel.textContent = count.toLocaleString() + ' blades';
+        }
+      }
+
+      buildDynamicMeadow(currentQuality);
+
+      // -----------------------------------------------------------------------
+      // 6. Pointer & Touch Raycasting + UI Event Wiring
+      // -----------------------------------------------------------------------
+      var pointerNDC = new THREE.Vector2(0, 0);
+      var smoothPointer = new THREE.Vector2(0, 0);
+      var pointerActive = false;
+      var raycaster = new THREE.Raycaster();
+      var lastHitXZ = new THREE.Vector2(9999, 9999);
+      var lastSpawnTime = 0;
+
+      function updatePointerFromClient(clientX, clientY) {
+        pointerNDC.x = (clientX / window.innerWidth) * 2.0 - 1.0;
+        pointerNDC.y = -(clientY / window.innerHeight) * 2.0 + 1.0;
+        pointerActive = true;
+      }
+
+      window.addEventListener('pointermove', function (e) {
+        updatePointerFromClient(e.clientX, e.clientY);
+      }, { passive: true });
+
+      window.addEventListener('touchstart', function (e) {
+        if (e.touches && e.touches.length > 0) {
+          updatePointerFromClient(e.touches[0].clientX, e.touches[0].clientY);
+        }
+      }, { passive: true });
+
+      window.addEventListener('touchmove', function (e) {
+        if (e.touches && e.touches.length > 0) {
+          updatePointerFromClient(e.touches[0].clientX, e.touches[0].clientY);
+        }
+      }, { passive: true });
+
+      // Quality buttons
+      var qBtnMap = {
+        low: document.getElementById('q-low'),
+        medium: document.getElementById('q-medium'),
+        high: document.getElementById('q-high')
+      };
+      ['low', 'medium', 'high'].forEach(function (qKey) {
+        var btn = qBtnMap[qKey];
+        if (!btn) return;
+        btn.classList.toggle('active', qKey === currentQuality);
+        btn.addEventListener('click', function () {
+          if (currentQuality === qKey) return;
+          currentQuality = qKey;
+          ['low', 'medium', 'high'].forEach(function (k) {
+            var el = qBtnMap[k];
+            if (el) el.classList.toggle('active', k === currentQuality);
+          });
+          buildDynamicMeadow(currentQuality);
+        });
+      });
+
+      // Day / Night transition via GSAP
+      var uiLayer = document.getElementById('ui-layer');
+      var btnDay = document.getElementById('btn-day');
+      var btnNight = document.getElementById('btn-night');
+
+      function switchDayNight(targetMode) {
+        if (targetMode === currentMode) return;
+        currentMode = targetMode;
+        soundscape.setMode(targetMode);
+
+        btnDay.classList.toggle('active', targetMode === 'day');
+        btnNight.classList.toggle('active', targetMode === 'night');
+        uiLayer.classList.toggle('is-night', targetMode === 'night');
+        uiLayer.classList.toggle('is-day', targetMode === 'day');
+
+        var targetMix = targetMode === 'night' ? 1.0 : 0.0;
+        gsap.to(nightState, {
+          value: targetMix,
+          duration: 2.3,
+          ease: 'power2.inOut',
+          onUpdate: function () {
+            var v = nightState.value;
+            skyUniforms.uNightMix.value = v;
+            cloudUniforms.uNightMix.value = v;
+            grassUniforms.uNightMix.value = v;
+            foliageUniforms.uNightMix.value = v;
+            fireflyUniforms.uOpacity.value = THREE.MathUtils.smoothstep(v, 0.15, 0.95);
+
+            currentFogColor.copy(dayFogColor).lerp(nightFogColor, v);
+            dirLight.intensity = THREE.MathUtils.lerp(1.45, 0.38, v);
+            dirLight.color.setHSL(
+              THREE.MathUtils.lerp(0.11, 0.59, v),
+              THREE.MathUtils.lerp(0.75, 0.55, v),
+              THREE.MathUtils.lerp(0.95, 0.72, v)
+            );
+            hemiLight.intensity = THREE.MathUtils.lerp(0.85, 0.28, v);
+          }
+        });
+      }
+
+      btnDay.addEventListener('click', function () { switchDayNight('day'); });
+      btnNight.addEventListener('click', function () { switchDayNight('night'); });
+
+      // Sound toggle button
+      var btnSound = document.getElementById('btn-sound');
+      function updateSoundButtonUI(isOn) {
+        btnSound.textContent = isOn ? 'Sound On' : 'Sound Off';
+        btnSound.classList.toggle('active', isOn);
+      }
+
+      btnSound.addEventListener('click', function () {
+        var on = soundscape.toggle();
+        updateSoundButtonUI(on);
+      });
+
+      // "try it now" & brand reset buttons
+      var heroSection = document.getElementById('hero-section');
+      var tryNowBtn = document.getElementById('try-now-btn');
+      var brandResetBtn = document.getElementById('brand-reset-btn');
+
+      function setImmersiveState(next) {
+        isImmersive = next;
+        heroSection.classList.toggle('is-minimized', isImmersive);
+        tryNowBtn.textContent = isImmersive ? 'back to view' : 'try it now';
+        if (isImmersive && !soundscape.enabled) {
+          var started = soundscape.toggle(true);
+          updateSoundButtonUI(started);
+        }
+      }
+
+      tryNowBtn.addEventListener('click', function () {
+        setImmersiveState(!isImmersive);
+      });
+
+      brandResetBtn.addEventListener('click', function () {
+        if (isImmersive) setImmersiveState(false);
+      });
+
+      // Resize handler
+      window.addEventListener('resize', function () {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, QUALITY_PRESETS[currentQuality].maxDpr));
+      });
+
+      // -----------------------------------------------------------------------
+      // 7. Render & Physics Animation Loop
+      // -----------------------------------------------------------------------
+      var clock = new THREE.Clock();
+      var currentCamPos = new THREE.Vector3(0, 2.35, 14.0);
+      var currentLookAt = new THREE.Vector3(0, 3.1, -34.0);
+      var targetCamPos = new THREE.Vector3();
+      var targetLookAt = new THREE.Vector3();
+
+      function animate() {
+        requestAnimationFrame(animate);
+
+        var delta = Math.min(clock.getDelta(), 0.05);
+        var elapsed = clock.getElapsedTime();
+
+        skyUniforms.uTime.value = elapsed;
+        cloudUniforms.uTime.value = elapsed;
+        grassUniforms.uTime.value = elapsed;
+        foliageUniforms.uTime.value = elapsed;
+        fireflyUniforms.uTime.value = elapsed;
+
+        // Slowly breathing wind angle & speed
+        var windAngle = 0.52 + Math.sin(elapsed * 0.14) * 0.28 + Math.cos(elapsed * 0.07) * 0.15;
+        grassUniforms.uWindDir.value.set(Math.cos(windAngle), Math.sin(windAngle)).normalize();
+        grassUniforms.uWindStrength.value = 0.92 + Math.sin(elapsed * 0.31) * 0.24;
+        foliageUniforms.uWindDir.value.copy(grassUniforms.uWindDir.value);
+        foliageUniforms.uWindStrength.value = grassUniforms.uWindStrength.value;
+
+        // Smooth camera parallax with strict ground-clearance protection
+        smoothPointer.x = THREE.MathUtils.lerp(smoothPointer.x, pointerNDC.x, delta * 2.4);
+        smoothPointer.y = THREE.MathUtils.lerp(smoothPointer.y, pointerNDC.y, delta * 2.4);
+
+        var baseZ = isImmersive ? 11.4 : 14.0;
+        var baseYOffset = isImmersive ? 1.85 : 2.25;
+        var camX = smoothPointer.x * 1.35 + Math.sin(elapsed * 0.22) * 0.12;
+        var camZ = baseZ - smoothPointer.y * 0.45;
+        var groundY = getTerrainHeight(camX, camZ);
+        var camY = Math.max(groundY + 1.25, groundY + baseYOffset + smoothPointer.y * 0.32);
+
+        targetCamPos.set(camX, camY, camZ);
+        currentCamPos.lerp(targetCamPos, delta * 2.2);
+        camera.position.copy(currentCamPos);
+
+        targetLookAt.set(smoothPointer.x * 2.2, 3.15 + smoothPointer.y * 0.85, -36.0);
+        currentLookAt.lerp(targetLookAt, delta * 2.5);
+        camera.lookAt(currentLookAt);
+
+        // Raycast pointer onto analytical heightfield to disturb grass blades
+        if (pointerActive) {
+          raycaster.setFromCamera(pointerNDC, camera);
+          var orig = raycaster.ray.origin;
+          var dir = raycaster.ray.direction;
+          if (dir.y < -0.01) {
+            var tEst = (orig.y - 1.0) / -dir.y;
+            tEst = Math.max(1.5, Math.min(58.0, tEst));
+            for (var s = 0; s < 4; s++) {
+              var px = orig.x + dir.x * tEst;
+              var pz = orig.z + dir.z * tEst;
+              var py = orig.y + dir.y * tEst;
+              var h = getTerrainHeight(px, pz);
+              tEst += (py - h) / Math.max(0.08, -dir.y);
+            }
+            var hitX = orig.x + dir.x * tEst;
+            var hitZ = orig.z + dir.z * tEst;
+            if (tEst > 1.0 && tEst < 54.0) {
+              var dx = hitX - lastHitXZ.x;
+              var dz = hitZ - lastHitXZ.y;
+              var dist = Math.hypot(dx, dz);
+              if (dist > 0.16 && elapsed - lastSpawnTime > 0.022) {
+                var idx = trailHead % TRAIL_SIZE;
+                trailHead++;
+                var speed = Math.min(3.5, dist / Math.max(0.016, delta) * 0.08);
+                var node = trailNodes[idx];
+                node.x = hitX;
+                node.z = hitZ;
+                node.vx = dist > 0.001 ? dx / dist : 0;
+                node.vz = dist > 0.001 ? dz / dist : 0;
+                node.radius = 2.8 + Math.min(1.8, speed * 0.65);
+                node.strength = Math.min(1.0, 0.58 + speed * 0.35);
+
+                lastHitXZ.set(hitX, hitZ);
+                lastSpawnTime = elapsed;
+                if (speed > 0.45) {
+                  soundscape.rustle(speed);
+                }
+              }
+            }
+          }
+        }
+
+        for (var k = 0; k < TRAIL_SIZE; k++) {
+          var n = trailNodes[k];
+          if (n.strength > 0.001) {
+            n.strength = Math.max(0, n.strength - delta * 0.72);
+          }
+          trailUniformVecs[k].set(n.x, n.z, n.radius, n.strength);
+          trailVelVecs[k].set(n.vx, n.vz);
+        }
+
+        renderer.render(scene, camera);
+      }
+
+      window.onload = function () {
+        animate();
+      };
+    })();
+  </script>
+</body>
+</html>
