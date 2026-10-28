@@ -5,6 +5,8 @@
 > An immersive **3D WebGL meadow** — GPU grass, day/night cycle, fireflies, and a procedural nature soundscape, without leaving your desk.
 
 <p align="center">
+  <a href="https://reikama414.github.io/touch-grass/">Live demo</a>
+  ·
   <a href="https://github.com/ReiKama414/touch-grass">Star</a>
   ·
   <a href="https://reikama414.vercel.app/">Portfolio</a>
@@ -103,6 +105,7 @@ Runtime fonts load from Google Fonts (Cormorant Garamond · Inter). npm dependen
 
 | | |
 | --- | --- |
+| Live demo | [GitHub Pages](https://reikama414.github.io/touch-grass/) |
 | Repository | [touch-grass](https://github.com/ReiKama414/touch-grass) |
 | Author | [ReiKama414](https://github.com/ReiKama414) |
 | Portfolio | [Personal site](https://reikama414.vercel.app/) |

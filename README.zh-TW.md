@@ -5,6 +5,8 @@
 > 沉浸式 **3D WebGL 草地** — GPU 草葉、日夜循環、螢火蟲與程序化自然聲景，不用離開書桌也能摸草
 
 <p align="center">
+  <a href="https://reikama414.github.io/touch-grass/">線上示範</a>
+  ·
   <a href="https://github.com/ReiKama414/touch-grass">Star</a>
   ·
   <a href="https://reikama414.vercel.app/">個人網站</a>
@@ -103,6 +105,7 @@ npm run preview
 
 | | |
 | --- | --- |
+| 線上示範 | [GitHub Pages](https://reikama414.github.io/touch-grass/) |
 | 倉庫 | [touch-grass](https://github.com/ReiKama414/touch-grass) |
 | 作者 | [ReiKama414](https://github.com/ReiKama414) |
 | 作品集 | [個人網站](https://reikama414.vercel.app/) |
